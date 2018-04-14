@@ -41,7 +41,7 @@ def Database():
         conn.commit()
 
 def Exit():
-    result = tkMessageBox.askquestion('Simple Inventory System', 'Are you sure you want to exit?', icon="warning")
+    result = tkMessageBox.askquestion('BM Pharmacy', 'Are you sure you want to exit?', icon="warning")
     if result == 'yes':
         root.destroy()
         exit()
@@ -92,17 +92,20 @@ def Home():
     Home.resizable(0, 0)
     Title = Frame(Home, bd=1, relief=SOLID)
     Title.pack(pady=10)
-    lbl_display = Label(Title, text="Simple Inventory System", font=('arial', 20))
+    lbl_display = Label(Title, text="BM Pharmacy", font=('arial', 20))
     lbl_display.pack()
     menubar = Menu(Home)
     filemenu = Menu(menubar, tearoff=0)
     filemenu2 = Menu(menubar, tearoff=0)
+    filemenu3 = Menu(menubar, tearoff=0)
     filemenu.add_command(label="Logout", command=Logout)
     filemenu.add_command(label="Exit", command=Exit)
     filemenu2.add_command(label="Add new", command=ShowAddNew)
     filemenu2.add_command(label="View", command=ShowView)
+    filemenu3.add_command(label="Sell", command=ShowSell)
     menubar.add_cascade(label="Account", menu=filemenu)
     menubar.add_cascade(label="Inventory", menu=filemenu2)
+    menubar.add_cascade(label="Transaction", menu=filemenu3)
     Home.config(menu=menubar)
     Home.config(bg="#99ff99")
 
@@ -227,6 +230,73 @@ def ViewForm():
     tree.pack()
     DisplayData()
 
+def SellForm():
+    global tree
+
+    TopViewForm = Frame(viewform, width=600, bd=1, relief=SOLID)
+    TopViewForm.pack(side=TOP, fill=X)
+    LeftViewForm = Frame(viewform, width=600)
+    LeftViewForm.pack(side=LEFT, fill=Y)
+    MidViewForm = Frame(viewform, width=600)
+    MidViewForm.pack(side=RIGHT)
+    lbl_text = Label(TopViewForm, text="Medicine Stock", font=('arial', 18), width=600)
+    lbl_text.pack(fill=X)
+
+
+    OPTIONS = getInfo()
+    variable = StringVar()
+    variable.set(OPTIONS[0])
+    w = OptionMenu(LeftViewForm, variable, *OPTIONS)
+    w.pack()
+
+    search = Entry(LeftViewForm, textvariable=SEARCH, font=('arial', 15), width=10)
+    search.pack(side=TOP,  padx=10, fill=X)
+    btn_search = Button(LeftViewForm, text="Search", command=Search)
+    btn_search.pack(side=TOP, padx=10, pady=10, fill=X)
+    btn_reset = Button(LeftViewForm, text="Reset", command=Reset)
+    btn_reset.pack(side=TOP, padx=10, pady=10, fill=X)
+    btn_delete = Button(LeftViewForm, text="Delete", command=Delete)
+    btn_delete.pack(side=TOP, padx=10, pady=10, fill=X)
+    scrollbarx = Scrollbar(MidViewForm, orient=HORIZONTAL)
+    scrollbary = Scrollbar(MidViewForm, orient=VERTICAL)
+    tree = ttk.Treeview(MidViewForm, columns=("name", "ID", "batch_code", "orig_quantity", "quantity", "price", "expiry"), selectmode="extended", height=100, yscrollcommand=scrollbary.set, xscrollcommand=scrollbarx.set)
+    scrollbary.config(command=tree.yview)
+    scrollbary.pack(side=RIGHT, fill=Y)
+    scrollbarx.config(command=tree.xview)
+    scrollbarx.pack(side=BOTTOM, fill=X)
+    tree.heading('name', text="Med",anchor=W)
+    tree.heading('ID', text="ID",anchor=W)
+    tree.heading('batch_code', text="Batch",anchor=W)
+    tree.heading('orig_quantity', text="Original Qty",anchor=W)
+    tree.heading('quantity', text="Current Qty",anchor=W)
+    tree.heading('price', text="Price",anchor=W)
+    tree.heading('expiry', text="Expiry",anchor=W)
+    tree.column('#0', stretch=NO, minwidth=0, width=0)
+    tree.column('#1', stretch=NO, minwidth=0, width=20)
+    tree.column('#2', stretch=NO, minwidth=0, width=120)
+    tree.column('#3', stretch=NO, minwidth=0, width=120)
+    tree.column('#4', stretch=NO, minwidth=0, width=120)
+    tree.column('#5', stretch=NO, minwidth=0, width=120)
+    tree.column('#6', stretch=NO, minwidth=0, width=120)
+    tree.column('#7', stretch=NO, minwidth=0, width=120)
+    tree.pack()
+    getInfo()
+    DisplayData()
+
+def getInfo ():
+    Database()
+    command = ("SELECT MEDICINE.name " 
+                    "FROM MEDICINE "
+                    "INNER JOIN MEDICINE_STOCK ON MEDICINE.ID = MEDICINE_STOCK.ID "
+                    "WHERE MEDICINE_STOCK.quantity > 0")
+    cursor.execute(command)
+    fetch = cursor.fetchall()
+    dd_list = []
+    for data in fetch:
+        dd_list.append(data[0])
+    print (dd_list)
+    return dd_list
+
 def DisplayData():
     Database()
     command = ("SELECT MEDICINE.name, MEDICINE_STOCK.ID,"
@@ -296,8 +366,22 @@ def ShowView():
     viewform.resizable(0, 0)
     ViewForm()
 
+def ShowSell():
+    global viewform
+    viewform = Toplevel()
+    viewform.title("View Stock")
+    width = 600
+    height = 400
+    screen_width = Home.winfo_screenwidth()
+    screen_height = Home.winfo_screenheight()
+    x = (screen_width/2) - (width/2)
+    y = (screen_height/2) - (height/2)
+    viewform.geometry("%dx%d+%d+%d" % (width, height, x, y))
+    viewform.resizable(0, 0)
+    SellForm()
+
 def Logout():
-    result = tkMessageBox.askquestion('Simple Inventory System', 'Are you sure you want to logout?', icon="warning")
+    result = tkMessageBox.askquestion('BM Pharmacy', 'Are you sure you want to logout?', icon="warning")
     if result == 'yes': 
         admin_id = ""
         root.deiconify()
@@ -329,7 +413,6 @@ def ShowHome():
     root.withdraw()
     Home()
     loginform.destroy()
-
 
 #========================================MENUBAR WIDGETS==================================
 menubar = Menu(root)
