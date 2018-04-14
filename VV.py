@@ -2,6 +2,7 @@ from tkinter import *
 import tkinter.messagebox as tkMessageBox
 import sqlite3
 import tkinter.ttk as ttk
+from functools import partial
 
 root = Tk()
 root.title("BM Pharmacy")
@@ -230,6 +231,16 @@ def ViewForm():
     tree.pack()
     DisplayData()
 
+def getOptVal (sb,value):
+    Database ()
+    command = ("SELECT SUM (MEDICINE_STOCK.quantity) "
+                "FROM MEDICINE_STOCK, MEDICINE "
+                "WHERE MEDICINE.name = ? AND MEDICINE.ID = MEDICINE_STOCK.id")
+    cursor.execute(command, (value,))
+    data = cursor.fetchone()
+    optval = data[0]
+    sb.config(to=int(optval))
+
 def SellForm():
 
     TopViewForm = Frame(sellform, width=600, bd=1, relief=SOLID)
@@ -244,21 +255,18 @@ def SellForm():
     sellform.grid_columnconfigure(2,weight=1)
     
 
+    N = 5
     OPTIONS = getInfo()
-    v = []
-    w = []
-    for i in range(5):
-        v.append(StringVar())
-        # variable.set(OPTIONS[0])
-        w.append(OptionMenu(LeftViewForm, v[i], *OPTIONS))
-        w[i].grid(row=i, column=1)
-        # w[i].pack()
+    med_vars = []
+    med_opts = []
+    med_quants = []
 
-    for i in range(5,10):
-        v.append(StringVar())
-        w.append(OptionMenu(LeftViewForm, v[i], *OPTIONS))
-        w[i].grid(row=i-5, column=2)
-        # w[i].pack()
+    for i in range(N):
+        med_vars.append(StringVar())
+        med_quants.append(Spinbox(LeftViewForm,to=10))
+        med_opts.append(OptionMenu(LeftViewForm, med_vars[i], *OPTIONS,command = partial(getOptVal,med_quants[i]) ))
+        med_opts[i].grid(row=i, column=1)
+        med_quants[i].grid(row=i, column=2)
 
     search = Entry(LeftViewForm, textvariable=SEARCH, font=('arial', 15), width=10)
     search.pack(side=TOP,  padx=10, fill=X)
