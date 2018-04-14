@@ -241,6 +241,15 @@ def getOptVal (sb,value):
     optval = data[0]
     sb.config(to=int(optval))
 
+# def validate (var):
+#     var = var.get()
+#     try:
+#         value = int(var)
+#         valid = True
+#     except ValueError:
+#         valid = False
+#     return valid
+
 def SellForm():
 
     TopViewForm = Frame(sellform, width=600, bd=1, relief=SOLID)
@@ -252,31 +261,26 @@ def SellForm():
     lbl_text = Label(TopViewForm, text="Medicine Stock", font=('arial', 18), width=600)
     lbl_text.pack(fill=X)
 
-    sellform.grid_columnconfigure(2,weight=1)
-    
+    global N
 
     N = 5
+
     OPTIONS = getInfo()
     med_vars = []
     med_opts = []
     med_quants = []
+    quant_vars = []
 
     for i in range(N):
         med_vars.append(StringVar())
-        med_quants.append(Spinbox(LeftViewForm,to=10))
+        quant_vars.append(StringVar())
+        med_quants.append(Spinbox(LeftViewForm,textvariable=quant_vars[i],to=0))
         med_opts.append(OptionMenu(LeftViewForm, med_vars[i], *OPTIONS,command = partial(getOptVal,med_quants[i]) ))
-        med_opts[i].grid(row=i, column=1)
-        med_quants[i].grid(row=i, column=2)
+        # med_opts[i].grid(row=i, column=2)
+        # med_quants[i].grid(row=i, column=3)
 
-    search = Entry(LeftViewForm, textvariable=SEARCH, font=('arial', 15), width=10)
-    search.pack(side=TOP,  padx=10, fill=X)
-    btn_search = Button(LeftViewForm, text="Search", command=Search)
-    btn_search.pack(side=TOP, padx=10, pady=10, fill=X)
-    btn_reset = Button(LeftViewForm, text="Reset", command=Reset)
-    btn_reset.pack(side=TOP, padx=10, pady=10, fill=X)
-    btn_delete = Button(LeftViewForm, text="Delete", command=Delete)
-    btn_delete.pack(side=TOP, padx=10, pady=10, fill=X)
-    getInfo()
+    btn_submit = Button(LeftViewForm, text="Submit", command=partial(SubmitBill,med_opts,med_quants))
+    btn_submit.pack(side=TOP, padx=50, pady=10, fill=X)
 
 def getInfo ():
     Database()
@@ -304,6 +308,10 @@ def DisplayData():
         tree.insert('', 'end', values=(data))
     cursor.close()
     conn.close()
+
+def SubmitBill (opt,quant):
+    for i in range (N):
+        print (opt[i].get(), quant[i].get())
 
 def Search():
     if SEARCH.get() != "":
