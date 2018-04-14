@@ -280,7 +280,7 @@ def Delete():
             conn.close()
 
 def parseDate (s):
-        
+        return ''
 
 def ShowView():
     global viewform
