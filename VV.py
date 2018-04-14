@@ -231,23 +231,34 @@ def ViewForm():
     DisplayData()
 
 def SellForm():
-    global tree
 
-    TopViewForm = Frame(viewform, width=600, bd=1, relief=SOLID)
+    TopViewForm = Frame(sellform, width=600, bd=1, relief=SOLID)
     TopViewForm.pack(side=TOP, fill=X)
-    LeftViewForm = Frame(viewform, width=600)
+    LeftViewForm = Frame(sellform, width=600)
     LeftViewForm.pack(side=LEFT, fill=Y)
-    MidViewForm = Frame(viewform, width=600)
+    MidViewForm = Frame(sellform, width=600)
     MidViewForm.pack(side=RIGHT)
     lbl_text = Label(TopViewForm, text="Medicine Stock", font=('arial', 18), width=600)
     lbl_text.pack(fill=X)
 
+    sellform.grid_columnconfigure(2,weight=1)
+    
 
     OPTIONS = getInfo()
-    variable = StringVar()
-    variable.set(OPTIONS[0])
-    w = OptionMenu(LeftViewForm, variable, *OPTIONS)
-    w.pack()
+    v = []
+    w = []
+    for i in range(5):
+        v.append(StringVar())
+        # variable.set(OPTIONS[0])
+        w.append(OptionMenu(LeftViewForm, v[i], *OPTIONS))
+        w[i].grid(row=i, column=1)
+        # w[i].pack()
+
+    for i in range(5,10):
+        v.append(StringVar())
+        w.append(OptionMenu(LeftViewForm, v[i], *OPTIONS))
+        w[i].grid(row=i-5, column=2)
+        # w[i].pack()
 
     search = Entry(LeftViewForm, textvariable=SEARCH, font=('arial', 15), width=10)
     search.pack(side=TOP,  padx=10, fill=X)
@@ -257,31 +268,7 @@ def SellForm():
     btn_reset.pack(side=TOP, padx=10, pady=10, fill=X)
     btn_delete = Button(LeftViewForm, text="Delete", command=Delete)
     btn_delete.pack(side=TOP, padx=10, pady=10, fill=X)
-    scrollbarx = Scrollbar(MidViewForm, orient=HORIZONTAL)
-    scrollbary = Scrollbar(MidViewForm, orient=VERTICAL)
-    tree = ttk.Treeview(MidViewForm, columns=("name", "ID", "batch_code", "orig_quantity", "quantity", "price", "expiry"), selectmode="extended", height=100, yscrollcommand=scrollbary.set, xscrollcommand=scrollbarx.set)
-    scrollbary.config(command=tree.yview)
-    scrollbary.pack(side=RIGHT, fill=Y)
-    scrollbarx.config(command=tree.xview)
-    scrollbarx.pack(side=BOTTOM, fill=X)
-    tree.heading('name', text="Med",anchor=W)
-    tree.heading('ID', text="ID",anchor=W)
-    tree.heading('batch_code', text="Batch",anchor=W)
-    tree.heading('orig_quantity', text="Original Qty",anchor=W)
-    tree.heading('quantity', text="Current Qty",anchor=W)
-    tree.heading('price', text="Price",anchor=W)
-    tree.heading('expiry', text="Expiry",anchor=W)
-    tree.column('#0', stretch=NO, minwidth=0, width=0)
-    tree.column('#1', stretch=NO, minwidth=0, width=20)
-    tree.column('#2', stretch=NO, minwidth=0, width=120)
-    tree.column('#3', stretch=NO, minwidth=0, width=120)
-    tree.column('#4', stretch=NO, minwidth=0, width=120)
-    tree.column('#5', stretch=NO, minwidth=0, width=120)
-    tree.column('#6', stretch=NO, minwidth=0, width=120)
-    tree.column('#7', stretch=NO, minwidth=0, width=120)
-    tree.pack()
     getInfo()
-    DisplayData()
 
 def getInfo ():
     Database()
@@ -294,7 +281,6 @@ def getInfo ():
     dd_list = []
     for data in fetch:
         dd_list.append(data[0])
-    print (dd_list)
     return dd_list
 
 def DisplayData():
@@ -367,17 +353,17 @@ def ShowView():
     ViewForm()
 
 def ShowSell():
-    global viewform
-    viewform = Toplevel()
-    viewform.title("View Stock")
+    global sellform
+    sellform = Toplevel()
+    sellform.title("Sell Medicine")
     width = 600
     height = 400
     screen_width = Home.winfo_screenwidth()
     screen_height = Home.winfo_screenheight()
     x = (screen_width/2) - (width/2)
     y = (screen_height/2) - (height/2)
-    viewform.geometry("%dx%d+%d+%d" % (width, height, x, y))
-    viewform.resizable(0, 0)
+    sellform.geometry("%dx%d+%d+%d" % (width, height, x, y))
+    sellform.resizable(0, 0)
     SellForm()
 
 def Logout():
