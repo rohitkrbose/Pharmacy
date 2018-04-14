@@ -34,8 +34,8 @@ def Database():
     cursor = conn.cursor()
     cursor.execute("CREATE TABLE IF NOT EXISTS `ADMIN` (`user` TEXT,`password` TEXT,PRIMARY KEY(user));")
     cursor.execute("CREATE TABLE IF NOT EXISTS `MEDICINE` (`ID` INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE, `name` INTEGER UNIQUE);")
-    cursor.execute("CREATE TABLE IF NOT EXISTS `MEDICINE_STOCK` (`ID`INTEGER NOT NULL, `batch_code` INTEGER, `expiry` DATE, `quantity` INTEGER, `price` REAL, PRIMARY KEY(ID,batch_code), FOREIGN KEY(`ID`) REFERENCES MEDICINE);")
-    cursor.execute("CREATE TABLE IF NOT EXISTS `TRANSACTION` (`T_ID` INTEGER PRIMARY KEY AUTOINCREMENT, `ID` INTEGER NOT NULL, `batch_code` INTEGER NOT NULL, `quantity` INTEGER, `price` REAL NOT NULL, FOREIGN KEY(`ID`) REFERENCES MEDICINE_STOCK, FOREIGN KEY(`batch_code`) REFERENCES MEDICINE_STOCK, FOREIGN KEY(`price`) REFERENCES MEDICINE_STOCK);")
+    cursor.execute("CREATE TABLE IF NOT EXISTS `MEDICINE_STOCK` (`ID`INTEGER NOT NULL, `batch_code` DATE, `expiry` DATE, `quantity` INTEGER, `price` REAL, PRIMARY KEY(ID,batch_code), FOREIGN KEY(`ID`) REFERENCES MEDICINE);")
+    cursor.execute("CREATE TABLE IF NOT EXISTS `TRANSACTION` (`T_ID` INTEGER PRIMARY KEY AUTOINCREMENT, `ID` INTEGER NOT NULL, `batch_code` DATE NOT NULL, `quantity` INTEGER, `price` REAL NOT NULL, FOREIGN KEY(`ID`) REFERENCES MEDICINE_STOCK, FOREIGN KEY(`batch_code`) REFERENCES MEDICINE_STOCK, FOREIGN KEY(`price`) REFERENCES MEDICINE_STOCK);")
     cursor.execute("SELECT * FROM `ADMIN` WHERE `user` = 'admin' AND `password` = 'admin'")
     if cursor.fetchone() is None:
         cursor.execute("INSERT INTO `ADMIN` (user, password) VALUES('admin', 'admin')")
@@ -241,6 +241,15 @@ def getOptVal (sb,value):
     optval = data[0]
     sb.config(to=int(optval))
 
+# def validate (var):
+#     var = var.get()
+#     try:
+#         value = int(var)
+#         valid = True
+#     except ValueError:
+#         valid = False
+#     return valid
+
 def SellForm():
 
     TopViewForm = Frame(sellform, width=600, bd=1, relief=SOLID)
@@ -252,48 +261,37 @@ def SellForm():
     lbl_text = Label(TopViewForm, text="Medicine Stock", font=('arial', 18), width=600)
     lbl_text.pack(fill=X)
 
-    sellform.grid_columnconfigure(2,weight=1)
-    
+    global N
 
     N = 5
+
     OPTIONS = getInfo()
     med_vars = []
     med_opts = []
     med_quants = []
+    quant_vars = []
 
     for i in range(N):
         med_vars.append(StringVar())
-        med_quants.append(Spinbox(LeftViewForm,to=10))
+        quant_vars.append(StringVar())
+        med_quants.append(Spinbox(LeftViewForm,textvariable=quant_vars[i],to=0))
         med_opts.append(OptionMenu(LeftViewForm, med_vars[i], *OPTIONS,command = partial(getOptVal,med_quants[i]) ))
-        med_opts[i].grid(row=i, column=1)
-        med_quants[i].grid(row=i, column=2)
+        med_opts[i].grid(row=i, column=2)
+        med_quants[i].grid(row=i, column=3)
 
     ### Get the algorithm in python to update.
 
     # Step1: Find the existing quantities
-    names, quantities = [], []
-    sql_command = ("SELECT MEDICINE_STOCK.ID, MEDICINE_STOCK.batch_code, MEDICINE_STOCK.quantity, MEDICINE_STOCK.expiry"
-                   "FROM MEDICINE, MEDICINE_STOCK""
-                   WHERE MEDICINE.ID = MEDICINE_STOCK.ID AND MEDICINE.name = ?"
-                   "ORDER BY MEDICINE_STOCK.expiry")
 
 
 
-    ## IGNORE
-
-    search = Entry(LeftViewForm, textvariable=SEARCH, font=('arial', 15), width=10)
-    search.pack(side=TOP,  padx=10, fill=X)
-    btn_search = Button(LeftViewForm, text="Search", command=Search)
-    btn_search.pack(side=TOP, padx=10, pady=10, fill=X)
-    btn_reset = Button(LeftViewForm, text="Reset", command=Reset)
-    btn_reset.pack(side=TOP, padx=10, pady=10, fill=X)
-    btn_delete = Button(LeftViewForm, text="Delete", command=Delete)
-    btn_delete.pack(side=TOP, padx=10, pady=10, fill=X)
-    getInfo()
+    btn_submit = Button(LeftViewForm, text="Submit", command=partial(SubmitBill,med_vars,quant_vars))
+    # btn_submit.pack(side=TOP, padx=50, pady=10, fill=X)
+    btn_submit.grid(row=N,column=2)
 
 def getInfo ():
     Database()
-    command = ("SELECT MEDICINE.name " 
+    command = ("SELECT DISTINCT MEDICINE.name " 
                     "FROM MEDICINE "
                     "INNER JOIN MEDICINE_STOCK ON MEDICINE.ID = MEDICINE_STOCK.ID "
                     "WHERE MEDICINE_STOCK.quantity > 0")
@@ -308,8 +306,7 @@ def DisplayData():
     Database()
     command = ("SELECT MEDICINE.name, MEDICINE_STOCK.ID,"
                 "MEDICINE_STOCK.batch_code, MEDICINE_STOCK.orig_quantity,"
-                "MEDICINE_STOCK.quantity, MEDICINE_STOCK.price, MEDICINE_STOCK.expiry "
-                "FROM MEDICINE_STOCK "
+                "MEDICINE_STOCK.quantity, MEDICINE_STOCK.price, MEDICINE_STOCK.expiry " "FROM MEDICINE_STOCK "
                 "INNER JOIN MEDICINE ON MEDICINE.ID = MEDICINE_STOCK.ID ")
     cursor.execute(command)
     fetch = cursor.fetchall()
@@ -317,6 +314,44 @@ def DisplayData():
         tree.insert('', 'end', values=(data))
     cursor.close()
     conn.close()
+
+def SubmitBill (opt,quant):
+    Database()
+
+    names, quantities = [], []
+    for i in range (N):
+        t1 = opt[i].get()
+        t2 = quant[i].get()
+        # print (opt[i].get(), quant[i].get())
+        if t1 != '':
+            names.append(t1)
+            quantities.append(t2)
+            command = ("SELECT MEDICINE_STOCK.ID, MEDICINE_STOCK.batch_code, MEDICINE_STOCK.quantity, MEDICINE_STOCK.expiry, MEDICINE_STOCK.price "
+               "FROM MEDICINE, MEDICINE_STOCK " 
+               "WHERE MEDICINE.ID = MEDICINE_STOCK.ID AND MEDICINE.name = ? "
+               "ORDER BY MEDICINE_STOCK.expiry ")
+            cursor.execute(command, (t1,))
+            fetch = cursor.fetchall()
+            rem = int(t2)
+            print("Rem before start: ",rem)
+            for ent in fetch:
+                q = int(ent[2]) # quantity
+                print("stock available: ",q)
+                if (rem >= q):
+                    print("rem >= q")
+                    rem = rem - q
+                    q = 0
+                else:
+                    print("rem < q")
+                    q = q - rem
+                    rem = 0
+                print("Rem after an execution: ",rem)
+                command = ("UPDATE MEDICINE_STOCK "
+                           "SET quantity = ? "
+                           "WHERE MEDICINE_STOCK.ID = ? AND MEDICINE_STOCK.batch_code = ?")
+                cursor.execute(command, (int(q), int(ent[0]), str(ent[1])))
+                conn.commit()
+
 
 def Search():
     if SEARCH.get() != "":
