@@ -268,6 +268,19 @@ def SellForm():
         med_opts[i].grid(row=i, column=1)
         med_quants[i].grid(row=i, column=2)
 
+    ### Get the algorithm in python to update.
+
+    # Step1: Find the existing quantities
+    names, quantities = [], []
+    sql_command = ("SELECT MEDICINE_STOCK.ID, MEDICINE_STOCK.batch_code, MEDICINE_STOCK.quantity, MEDICINE_STOCK.expiry"
+                   "FROM MEDICINE, MEDICINE_STOCK""
+                   WHERE MEDICINE.ID = MEDICINE_STOCK.ID AND MEDICINE.name = ?"
+                   "ORDER BY MEDICINE_STOCK.expiry")
+
+
+
+    ## IGNORE
+
     search = Entry(LeftViewForm, textvariable=SEARCH, font=('arial', 15), width=10)
     search.pack(side=TOP,  padx=10, fill=X)
     btn_search = Button(LeftViewForm, text="Search", command=Search)
