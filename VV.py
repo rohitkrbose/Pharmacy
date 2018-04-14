@@ -276,11 +276,12 @@ def SellForm():
         quant_vars.append(StringVar())
         med_quants.append(Spinbox(LeftViewForm,textvariable=quant_vars[i],to=0))
         med_opts.append(OptionMenu(LeftViewForm, med_vars[i], *OPTIONS,command = partial(getOptVal,med_quants[i]) ))
-        # med_opts[i].grid(row=i, column=2)
-        # med_quants[i].grid(row=i, column=3)
+        med_opts[i].grid(row=i, column=2)
+        med_quants[i].grid(row=i, column=3)
 
-    btn_submit = Button(LeftViewForm, text="Submit", command=partial(SubmitBill,med_opts,med_quants))
-    btn_submit.pack(side=TOP, padx=50, pady=10, fill=X)
+    btn_submit = Button(LeftViewForm, text="Submit", command=partial(SubmitBill,med_vars,quant_vars))
+    # btn_submit.pack(side=TOP, padx=50, pady=10, fill=X)
+    btn_submit.grid(row=N,column=2)
 
 def getInfo ():
     Database()
