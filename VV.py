@@ -34,8 +34,8 @@ def Database():
     cursor = conn.cursor()
     cursor.execute("CREATE TABLE IF NOT EXISTS `ADMIN` (`user` TEXT,`password` TEXT,PRIMARY KEY(user));")
     cursor.execute("CREATE TABLE IF NOT EXISTS `MEDICINE` (`ID` INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE, `name` INTEGER UNIQUE);")
-    cursor.execute("CREATE TABLE IF NOT EXISTS `MEDICINE_STOCK` (`ID`INTEGER NOT NULL, `batch_code` DATE, `expiry` DATE, `quantity` INTEGER, `price` REAL, PRIMARY KEY(ID,batch_code), FOREIGN KEY(`ID`) REFERENCES MEDICINE);")
-    cursor.execute("CREATE TABLE IF NOT EXISTS `TRANSACTION` (`T_ID` INTEGER PRIMARY KEY AUTOINCREMENT, `ID` INTEGER NOT NULL, `batch_code` DATE NOT NULL, `quantity` INTEGER, `price` REAL NOT NULL, FOREIGN KEY(`ID`) REFERENCES MEDICINE_STOCK, FOREIGN KEY(`batch_code`) REFERENCES MEDICINE_STOCK, FOREIGN KEY(`price`) REFERENCES MEDICINE_STOCK);")
+    cursor.execute("CREATE TABLE IF NOT EXISTS `MEDICINE_STOCK` (`ID`INTEGER NOT NULL, `batch_code` DATE NOT NULL, `expiry` DATE NOT NULL, `quantity` INTEGER NOT NULL, `price` REAL NOT NULL, PRIMARY KEY(ID,batch_code), FOREIGN KEY(`ID`) REFERENCES MEDICINE);")
+    cursor.execute("CREATE TABLE IF NOT EXISTS `TRANSACTION` (`T_ID` INTEGER NOT NULL,`t_stamp` TEXT NOT NULL, `ID` INTEGER NOT NULL, `batch_code` DATE NOT NULL,`quantity` INTEGER NOT NULL, `price` REAL NOT NULL, PRIMARY KEY(T_ID,ID,batch_code), FOREIGN KEY(`ID`) REFERENCES MEDICINE_STOCK, FOREIGN KEY(`batch_code`) REFERENCES MEDICINE_STOCK, FOREIGN KEY(`price`) REFERENCES MEDICINE_STOCK);")
     cursor.execute("SELECT * FROM `ADMIN` WHERE `user` = 'admin' AND `password` = 'admin'")
     if cursor.fetchone() is None:
         cursor.execute("INSERT INTO `ADMIN` (user, password) VALUES('admin', 'admin')")
@@ -104,6 +104,7 @@ def Home():
     filemenu2.add_command(label="Add new", command=ShowAddNew)
     filemenu2.add_command(label="View", command=ShowView)
     filemenu3.add_command(label="Sell", command=ShowSell)
+    filemenu3.add_command(label="History", command=ShowHistory)
     menubar.add_cascade(label="Account", menu=filemenu)
     menubar.add_cascade(label="Inventory", menu=filemenu2)
     menubar.add_cascade(label="Transaction", menu=filemenu3)
@@ -231,6 +232,49 @@ def ViewForm():
     tree.pack()
     DisplayData()
 
+def HistoryForm():
+    global htree
+    TopViewForm = Frame(historyform, width=600, bd=1, relief=SOLID)
+    TopViewForm.pack(side=TOP, fill=X)
+    LeftViewForm = Frame(historyform, width=600)
+    LeftViewForm.pack(side=LEFT, fill=Y)
+    MidViewForm = Frame(historyform, width=600)
+    MidViewForm.pack(side=RIGHT)
+    lbl_text = Label(TopViewForm, text="Transaction History", font=('arial', 18), width=600)
+    lbl_text.pack(fill=X)
+    lbl_txtsearch = Label(LeftViewForm, text="Search", font=('arial', 15))
+    lbl_txtsearch.pack(side=TOP, anchor=W)
+    search = Entry(LeftViewForm, textvariable=SEARCH, font=('arial', 15), width=10)
+    search.pack(side=TOP,  padx=10, fill=X)
+    # btn_search = Button(LeftViewForm, text="Search", command=Search)
+    # btn_search.pack(side=TOP, padx=10, pady=10, fill=X)
+    # btn_reset = Button(LeftViewForm, text="Reset", command=Reset)
+    # btn_reset.pack(side=TOP, padx=10, pady=10, fill=X)
+    # btn_delete = Button(LeftViewForm, text="Delete", command=Delete)
+    # btn_delete.pack(side=TOP, padx=10, pady=10, fill=X)
+    scrollbarx = Scrollbar(MidViewForm, orient=HORIZONTAL)
+    scrollbary = Scrollbar(MidViewForm, orient=VERTICAL)
+    htree = ttk.Treeview(MidViewForm, columns=("T_ID", "ts", "ID", "batch_code", "quantity", "price"), selectmode="extended", height=100, yscrollcommand=scrollbary.set, xscrollcommand=scrollbarx.set)
+    scrollbary.config(command=htree.yview)
+    scrollbary.pack(side=RIGHT, fill=Y)
+    scrollbarx.config(command=htree.xview)
+    scrollbarx.pack(side=BOTTOM, fill=X)
+    htree.heading('T_ID', text="Transaction ID",anchor=W)
+    htree.heading('ts', text="Timestamp",anchor=W)
+    htree.heading('ID', text="Med ID",anchor=W)
+    htree.heading('batch_code', text="Batch",anchor=W)
+    htree.heading('quantity', text="Qty",anchor=W)
+    htree.heading('price', text="Price",anchor=W)
+    htree.column('#0', stretch=NO, minwidth=0, width=0)
+    htree.column('#1', stretch=NO, minwidth=0, width=20)
+    htree.column('#2', stretch=NO, minwidth=0, width=120)
+    htree.column('#3', stretch=NO, minwidth=0, width=120)
+    htree.column('#4', stretch=NO, minwidth=0, width=120)
+    htree.column('#5', stretch=NO, minwidth=0, width=120)
+    htree.column('#6', stretch=NO, minwidth=0, width=120)
+    htree.pack()
+    DisplayDataT()
+
 def getOptVal (sb,value):
     Database ()
     command = ("SELECT SUM (MEDICINE_STOCK.quantity) "
@@ -240,15 +284,6 @@ def getOptVal (sb,value):
     data = cursor.fetchone()
     optval = data[0]
     sb.config(to=int(optval))
-
-# def validate (var):
-#     var = var.get()
-#     try:
-#         value = int(var)
-#         valid = True
-#     except ValueError:
-#         valid = False
-#     return valid
 
 def SellForm():
 
@@ -315,14 +350,34 @@ def DisplayData():
     cursor.close()
     conn.close()
 
+def DisplayDataT():
+    Database()
+    command = ("SELECT * FROM `TRANSACTION` ORDER BY batch_code DESC;")
+    cursor.execute(command)
+    fetch = cursor.fetchall()
+    for data in fetch:
+        htree.insert('', 'end', values=(data))
+    cursor.close()
+    conn.close()
+
 def SubmitBill (opt,quant):
     Database()
+
+    # Get last transaction ID... it represents a bill
+    cursor.execute("SELECT * FROM `TRANSACTION`")
+    D = cursor.fetchall()
+    tid = 1
+    if (len(D) != 0):
+        tid = D[-1][0] + 1
+
+    cursor.execute("SELECT CURRENT_TIMESTAMP;")
+    ts = cursor.fetchall()[0][0]
+    print (ts)
 
     names, quantities = [], []
     for i in range (N):
         t1 = opt[i].get()
         t2 = quant[i].get()
-        # print (opt[i].get(), quant[i].get())
         if t1 != '':
             names.append(t1)
             quantities.append(t2)
@@ -333,19 +388,23 @@ def SubmitBill (opt,quant):
             cursor.execute(command, (t1,))
             fetch = cursor.fetchall()
             rem = int(t2)
-            print("Rem before start: ",rem)
+            # print("Rem before start: ",rem)
             for ent in fetch:
                 q = int(ent[2]) # quantity
-                print("stock available: ",q)
+                # print("stock available: ",q)
                 if (rem >= q):
                     print("rem >= q")
+                    cursor.execute("INSERT INTO `TRANSACTION` VALUES (?,?,?,?,?,?) ;", (tid,ts,int(ent[0]),str(ent[1]),q,float(ent[4])) )
+                    conn.commit()
                     rem = rem - q
                     q = 0
                 else:
                     print("rem < q")
+                    cursor.execute("INSERT INTO `TRANSACTION` VALUES (?,?,?,?,?,?) ;", (tid,ts,int(ent[0]),str(ent[1]),rem,float(ent[4])))
+                    conn.commit()
                     q = q - rem
                     rem = 0
-                print("Rem after an execution: ",rem)
+                # print("Rem after an execution: ",rem)
                 command = ("UPDATE MEDICINE_STOCK "
                            "SET quantity = ? "
                            "WHERE MEDICINE_STOCK.ID = ? AND MEDICINE_STOCK.batch_code = ?")
@@ -391,9 +450,6 @@ def Delete():
             cursor.close()
             conn.close()
 
-def parseDate (s):
-        return ''
-
 def ShowView():
     global viewform
     viewform = Toplevel()
@@ -407,6 +463,21 @@ def ShowView():
     viewform.geometry("%dx%d+%d+%d" % (width, height, x, y))
     viewform.resizable(0, 0)
     ViewForm()
+
+
+def ShowHistory():
+    global historyform
+    historyform = Toplevel()
+    historyform.title("View Transaction History")
+    width = 600
+    height = 400
+    screen_width = Home.winfo_screenwidth()
+    screen_height = Home.winfo_screenheight()
+    x = (screen_width/2) - (width/2)
+    y = (screen_height/2) - (height/2)
+    historyform.geometry("%dx%d+%d+%d" % (width, height, x, y))
+    historyform.resizable(0, 0)
+    HistoryForm()
 
 def ShowSell():
     global sellform
