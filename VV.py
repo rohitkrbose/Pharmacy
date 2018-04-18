@@ -76,7 +76,7 @@ def LoginForm():
     username.grid(row=0, column=1)
     password = Entry(MidLoginForm, textvariable=PASSWORD, font=('arial', 12), width=20, show="*")
     password.grid(row=1, column=1)
-    btn_login = Button(MidLoginForm, text="Create", font=('arial', 12), width=12, command=Login)
+    btn_login = Button(MidLoginForm, text="Login", font=('arial', 12), width=12, command=Login)
     btn_login.grid(row=2, columnspan=2, pady=8)
     btn_login.bind('<Return>', Login)
     
@@ -130,7 +130,7 @@ def ShowNewAcc():
 
 def NewAccForm():
     global lbl_result
-    MidLoginForm = Frame(loginform, width=300)
+    MidLoginForm = Frame(newaccform, width=300)
     MidLoginForm.pack(side=TOP, pady=10)
     lbl_username = Label(MidLoginForm, text="Username:", font=('arial', 12), bd=1)
     lbl_username.grid(row=0)
@@ -145,6 +145,29 @@ def NewAccForm():
     btn_login = Button(MidLoginForm, text="Create", font=('arial', 12), width=12, command=Create)
     btn_login.grid(row=2, columnspan=2, pady=8)
     btn_login.bind('<Return>', Create)
+
+def Create(event=None):
+    global user_id
+    Database()
+    if USERNAME.get == "" or PASSWORD.get() == "":
+        lbl_result.config(text="Please complete the required field!", fg="red")
+    else:
+        pass_hash = SHA256.new(PASSWORD.get().encode('utf-8')).hexdigest()
+        cursor.execute("SELECT * FROM `admin` WHERE `user` = ? ;", (USERNAME.get(), ))
+        if cursor.fetchone() is not None:
+            print ('User already exists. Select different username.')
+        else:
+            cursor.execute("INSERT INTO `admin` (user, password) VALUES(?, ?)", (USERNAME.get(), pass_hash))
+            conn.commit()
+            data = cursor.fetchone()
+            USERNAME.set("")
+            PASSWORD.set("")
+            lbl_result.config(text="")
+            # ShowHome()
+            USERNAME.set("")
+            PASSWORD.set("")
+    cursor.close()
+    conn.close() 
 
 def ShowAddNew():
     global addnewform
