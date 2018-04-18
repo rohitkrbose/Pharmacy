@@ -3,6 +3,7 @@ import tkinter.messagebox as tkMessageBox
 import sqlite3
 import tkinter.ttk as ttk
 from functools import partial
+from Crypto.Hash import SHA256
 
 root = Tk()
 root.title("BM Pharmacy")
@@ -36,9 +37,9 @@ def Database():
     cursor.execute("CREATE TABLE IF NOT EXISTS `MEDICINE` (`ID` INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE, `name` INTEGER UNIQUE);")
     cursor.execute("CREATE TABLE IF NOT EXISTS `MEDICINE_STOCK` (`ID`INTEGER NOT NULL, `batch_code` DATE NOT NULL, `expiry` DATE NOT NULL, `quantity` INTEGER NOT NULL, `price` REAL NOT NULL, PRIMARY KEY(ID,batch_code), FOREIGN KEY(`ID`) REFERENCES MEDICINE);")
     cursor.execute("CREATE TABLE IF NOT EXISTS `TRANSACTION` (`T_ID` INTEGER NOT NULL,`t_stamp` TEXT NOT NULL, `ID` INTEGER NOT NULL, `batch_code` DATE NOT NULL,`quantity` INTEGER NOT NULL, `price` REAL NOT NULL, PRIMARY KEY(T_ID,ID,batch_code), FOREIGN KEY(`ID`) REFERENCES MEDICINE_STOCK, FOREIGN KEY(`batch_code`) REFERENCES MEDICINE_STOCK, FOREIGN KEY(`price`) REFERENCES MEDICINE_STOCK);")
-    cursor.execute("SELECT * FROM `ADMIN` WHERE `user` = 'admin' AND `password` = 'admin'")
+    cursor.execute("SELECT * FROM `ADMIN`;")
     if cursor.fetchone() is None:
-        cursor.execute("INSERT INTO `ADMIN` (user, password) VALUES('admin', 'admin')")
+        cursor.execute("INSERT INTO `ADMIN` (user, password) VALUES('admin', ?)", (SHA256.new('admin'.encode('utf-8')).hexdigest(),))
         conn.commit()
 
 def Exit():
@@ -75,16 +76,17 @@ def LoginForm():
     username.grid(row=0, column=1)
     password = Entry(MidLoginForm, textvariable=PASSWORD, font=('arial', 12), width=20, show="*")
     password.grid(row=1, column=1)
-    btn_login = Button(MidLoginForm, text="Login", font=('arial', 12), width=12, command=Login)
+    btn_login = Button(MidLoginForm, text="Create", font=('arial', 12), width=12, command=Login)
     btn_login.grid(row=2, columnspan=2, pady=8)
     btn_login.bind('<Return>', Login)
     
+
 def Home():
     global Home
     Home = Tk()
-    Home.title("Medical Stossre")
-    width = 1024
-    height = 720
+    Home.title("Pharmacy")
+    width = 512
+    height = 50
     screen_width = Home.winfo_screenwidth()
     screen_height = Home.winfo_screenheight()
     x = (screen_width/2) - (width/2)
@@ -99,6 +101,7 @@ def Home():
     filemenu = Menu(menubar, tearoff=0)
     filemenu2 = Menu(menubar, tearoff=0)
     filemenu3 = Menu(menubar, tearoff=0)
+    filemenu.add_command(label="New account", command=ShowNewAcc)
     filemenu.add_command(label="Logout", command=Logout)
     filemenu.add_command(label="Exit", command=Exit)
     filemenu2.add_command(label="Add new", command=ShowAddNew)
@@ -110,6 +113,38 @@ def Home():
     menubar.add_cascade(label="Transaction", menu=filemenu3)
     Home.config(menu=menubar)
     Home.config(bg="#99ff99")
+
+def ShowNewAcc():
+    global newaccform
+    newaccform = Toplevel()
+    newaccform.title("New Account")
+    width = 300
+    height = 100
+    screen_width = root.winfo_screenwidth()
+    screen_height = root.winfo_screenheight()
+    x = (screen_width/2) - (width/2)
+    y = (screen_height/2) - (height/2)
+    newaccform.resizable(0, 0)
+    newaccform.geometry("%dx%d+%d+%d" % (width, height, x, y))
+    NewAccForm()
+
+def NewAccForm():
+    global lbl_result
+    MidLoginForm = Frame(loginform, width=300)
+    MidLoginForm.pack(side=TOP, pady=10)
+    lbl_username = Label(MidLoginForm, text="Username:", font=('arial', 12), bd=1)
+    lbl_username.grid(row=0)
+    lbl_password = Label(MidLoginForm, text="Password:", font=('arial', 12), bd=1)
+    lbl_password.grid(row=1)
+    lbl_result = Label(MidLoginForm, text="", font=('arial', 12))
+    lbl_result.grid(row=3, columnspan=3)
+    username = Entry(MidLoginForm, textvariable=USERNAME, font=('arial', 12), width=20)
+    username.grid(row=0, column=1)
+    password = Entry(MidLoginForm, textvariable=PASSWORD, font=('arial', 12), width=20, show="*")
+    password.grid(row=1, column=1)
+    btn_login = Button(MidLoginForm, text="Create", font=('arial', 12), width=12, command=Create)
+    btn_login.grid(row=2, columnspan=2, pady=8)
+    btn_login.bind('<Return>', Create)
 
 def ShowAddNew():
     global addnewform
@@ -242,16 +277,8 @@ def HistoryForm():
     MidViewForm.pack(side=RIGHT)
     lbl_text = Label(TopViewForm, text="Transaction History", font=('arial', 18), width=600)
     lbl_text.pack(fill=X)
-    lbl_txtsearch = Label(LeftViewForm, text="Search", font=('arial', 15))
+    lbl_txtsearch = Label(LeftViewForm, text=" ", font=('arial', 15))
     lbl_txtsearch.pack(side=TOP, anchor=W)
-    search = Entry(LeftViewForm, textvariable=SEARCH, font=('arial', 15), width=10)
-    search.pack(side=TOP,  padx=10, fill=X)
-    # btn_search = Button(LeftViewForm, text="Search", command=Search)
-    # btn_search.pack(side=TOP, padx=10, pady=10, fill=X)
-    # btn_reset = Button(LeftViewForm, text="Reset", command=Reset)
-    # btn_reset.pack(side=TOP, padx=10, pady=10, fill=X)
-    # btn_delete = Button(LeftViewForm, text="Delete", command=Delete)
-    # btn_delete.pack(side=TOP, padx=10, pady=10, fill=X)
     scrollbarx = Scrollbar(MidViewForm, orient=HORIZONTAL)
     scrollbary = Scrollbar(MidViewForm, orient=VERTICAL)
     htree = ttk.Treeview(MidViewForm, columns=("T_ID", "ts", "ID", "batch_code", "quantity", "price"), selectmode="extended", height=100, yscrollcommand=scrollbary.set, xscrollcommand=scrollbarx.set)
@@ -388,23 +415,18 @@ def SubmitBill (opt,quant):
             cursor.execute(command, (t1,))
             fetch = cursor.fetchall()
             rem = int(t2)
-            # print("Rem before start: ",rem)
             for ent in fetch:
                 q = int(ent[2]) # quantity
-                # print("stock available: ",q)
                 if (rem >= q):
-                    print("rem >= q")
                     cursor.execute("INSERT INTO `TRANSACTION` VALUES (?,?,?,?,?,?) ;", (tid,ts,int(ent[0]),str(ent[1]),q,float(ent[4])) )
                     conn.commit()
                     rem = rem - q
                     q = 0
                 else:
-                    print("rem < q")
                     cursor.execute("INSERT INTO `TRANSACTION` VALUES (?,?,?,?,?,?) ;", (tid,ts,int(ent[0]),str(ent[1]),rem,float(ent[4])))
                     conn.commit()
                     q = q - rem
                     rem = 0
-                # print("Rem after an execution: ",rem)
                 command = ("UPDATE MEDICINE_STOCK "
                            "SET quantity = ? "
                            "WHERE MEDICINE_STOCK.ID = ? AND MEDICINE_STOCK.batch_code = ?")
@@ -506,9 +528,10 @@ def Login(event=None):
     if USERNAME.get == "" or PASSWORD.get() == "":
         lbl_result.config(text="Please complete the required field!", fg="red")
     else:
-        cursor.execute("SELECT * FROM `admin` WHERE `user` = ? AND `password` = ?", (USERNAME.get(), PASSWORD.get()))
+        pass_hash = SHA256.new(PASSWORD.get().encode('utf-8')).hexdigest()
+        cursor.execute("SELECT * FROM `admin` WHERE `user` = ? AND `password` = ?", (USERNAME.get(), pass_hash))
         if cursor.fetchone() is not None:
-            cursor.execute("SELECT * FROM `admin` WHERE `user` = ? AND `password` = ?", (USERNAME.get(), PASSWORD.get()))
+            cursor.execute("SELECT * FROM `admin` WHERE `user` = ? AND `password` = ?", (USERNAME.get(), pass_hash))
             data = cursor.fetchone()
             admin_id = data[0]
             USERNAME.set("")
