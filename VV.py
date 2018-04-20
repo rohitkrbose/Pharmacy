@@ -34,7 +34,7 @@ def Database():
     conn = sqlite3.connect("database.db")
     cursor = conn.cursor()
     cursor.execute("CREATE TABLE IF NOT EXISTS `ADMIN` (`user` TEXT,`password` TEXT,PRIMARY KEY(user));")
-    cursor.execute("CREATE TABLE IF NOT EXISTS `MEDICINE` (`ID` INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE, `name` INTEGER UNIQUE);")
+    cursor.execute("CREATE TABLE IF NOT EXISTS `MEDICINE` (`ID` INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE, `name` INTEGER NOT NULL UNIQUE);")
     cursor.execute("CREATE TABLE IF NOT EXISTS `MEDICINE_STOCK` (`ID`INTEGER NOT NULL, `batch_code` DATE NOT NULL, `expiry` DATE NOT NULL, `quantity` INTEGER NOT NULL, `price` REAL NOT NULL, PRIMARY KEY(ID,batch_code), FOREIGN KEY(`ID`) REFERENCES MEDICINE);")
     cursor.execute("CREATE TABLE IF NOT EXISTS `TRANSACTION` (`T_ID` INTEGER NOT NULL,`t_stamp` TEXT NOT NULL, `ID` INTEGER NOT NULL, `batch_code` DATE NOT NULL,`quantity` INTEGER NOT NULL, `price` REAL NOT NULL, PRIMARY KEY(T_ID,ID,batch_code), FOREIGN KEY(`ID`) REFERENCES MEDICINE_STOCK, FOREIGN KEY(`batch_code`) REFERENCES MEDICINE_STOCK, FOREIGN KEY(`price`) REFERENCES MEDICINE_STOCK);")
     cursor.execute("SELECT * FROM `ADMIN`;")
@@ -81,7 +81,7 @@ def LoginForm():
     btn_login.bind('<Return>', Login)
     
 
-def Home():
+def Home_def():
     global Home
     Home = Tk()
     Home.title("Pharmacy")
@@ -163,11 +163,12 @@ def Create(event=None):
             USERNAME.set("")
             PASSWORD.set("")
             lbl_result.config(text="")
-            # ShowHome()
             USERNAME.set("")
             PASSWORD.set("")
     cursor.close()
     conn.close() 
+    newaccform.destroy()
+
 
 def ShowAddNew():
     global addnewform
@@ -218,6 +219,13 @@ def AddNew():
 
     comm_insert = "INSERT INTO `MEDICINE_STOCK` (ID,batch_code,expiry,orig_quantity,quantity,price) VALUES (?,?,?,?,?,?)"
     prod_name = str(PRODUCT_NAME.get())
+
+    # l = len(prod_name)
+    # if (l > 10):
+    #     prod_name = prod_name[:10]
+    # elif (l < 10):
+    #     a = 10 - l
+    #     prod_name = ''.join([' ']*a) + prod_name + ''.join([' ']*(a-int(a/2)))
 
     # check if new product is there in database
     cursor.execute("SELECT * FROM `MEDICINE` WHERE name = ?", (prod_name,))
@@ -337,13 +345,13 @@ def getOptVal (sb,value):
 
 def SellForm():
 
-    TopViewForm = Frame(sellform, width=600, bd=1, relief=SOLID)
+    TopViewForm = Frame(sellform, width=400, bd=1, relief=SOLID)
     TopViewForm.pack(side=TOP, fill=X)
-    LeftViewForm = Frame(sellform, width=600)
+    LeftViewForm = Frame(sellform, width=400)
     LeftViewForm.pack(side=LEFT, fill=Y)
-    MidViewForm = Frame(sellform, width=600)
+    MidViewForm = Frame(sellform, width=400)
     MidViewForm.pack(side=RIGHT)
-    lbl_text = Label(TopViewForm, text="Medicine Stock", font=('arial', 18), width=600)
+    lbl_text = Label(TopViewForm, text="Sell Medicines", font=('arial', 18), width=400)
     lbl_text.pack(fill=X)
 
     global N
@@ -364,15 +372,10 @@ def SellForm():
         med_opts[i].grid(row=i, column=2)
         med_quants[i].grid(row=i, column=3)
 
-    ### Get the algorithm in python to update.
-
-    # Step1: Find the existing quantities
-
-
 
     btn_submit = Button(LeftViewForm, text="Submit", command=partial(SubmitBill,med_vars,quant_vars))
     # btn_submit.pack(side=TOP, padx=50, pady=10, fill=X)
-    btn_submit.grid(row=N,column=2)
+    btn_submit.grid(row=N,column=3)
 
 def getInfo ():
     Database()
@@ -455,6 +458,7 @@ def SubmitBill (opt,quant):
                            "WHERE MEDICINE_STOCK.ID = ? AND MEDICINE_STOCK.batch_code = ?")
                 cursor.execute(command, (int(q), int(ent[0]), str(ent[1])))
                 conn.commit()
+    sellform.destroy()        
 
 
 def Search():
@@ -528,8 +532,8 @@ def ShowSell():
     global sellform
     sellform = Toplevel()
     sellform.title("Sell Medicine")
-    width = 600
-    height = 400
+    width = 300
+    height = 240
     screen_width = Home.winfo_screenwidth()
     screen_height = Home.winfo_screenheight()
     x = (screen_width/2) - (width/2)
@@ -570,7 +574,7 @@ def Login(event=None):
 
 def ShowHome():
     root.withdraw()
-    Home()
+    Home_def()
     loginform.destroy()
 
 #========================================MENUBAR WIDGETS==================================
