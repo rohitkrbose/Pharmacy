@@ -402,7 +402,7 @@ def DisplayData():
 
 def DisplayDataT():
     Database()
-    command = ("SELECT * FROM `TRANSACTION` ORDER BY batch_code DESC;")
+    command = ("SELECT * FROM `TRANSACTION` ORDER BY T_ID DESC;")
     cursor.execute(command)
     fetch = cursor.fetchall()
     for data in fetch:
